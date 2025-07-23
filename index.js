@@ -5,7 +5,22 @@ const app = express();
 const port = 3000;
 app.use(express.json())
 const users = []
+const auth = (req,res,next)=>{
+    const token=req.headers.authorization;
+    if(token){
+        jwt.verify(token,JWT_SECRET,(err,decoded)=>{
+            if(err){
+                res.status(401).send({message:"unauthorized"})
+            }
+            else
+                req.user = decoded;
+                next();
 
+        })
+    }
+    else
+        res.status(401).send({message:"unauthorized"})
+}
 app.post("/signup",(req,res)=>{
     const username = req.body.username
     const password = req.body.password
@@ -28,16 +43,9 @@ app.post("/signin",(req,res)=>{
     else
         res.status(403).send({message:"Invalid Username or Password"})
 });
-app.get("/me",(req,res)=>{
-    const token=req.headers.token;
-    const decodedInfo = jwt.verify(token,JWT_SECRET)
-    const username = decodedInfo.username
-    let foundUser= users.find(user => user.username=username);
-    if(foundUser){
-        res.json({username: foundUser.username, password: foundUser.password})
-    }
-    else
-        res.json({message:"token invalid"})
+app.get("/me",auth,(req,res)=>{
+    const user = req.user;
+    res.send({username:user.username})
 })
 app.listen(port,()=>{
     console.log(`Server running at http://localhost:${ port }`)})
