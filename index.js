@@ -1,12 +1,14 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const JWT_SECRET = "vfberbete"
+const { LocalStorage } = require('node-localstorage');
+const localStorage = new LocalStorage('./scratch');const JWT_SECRET = "vfberbete"
 const app = express();
 const port = 3000;
 app.use(express.json())
+app.use(express.urlencoded({extended:true}))
 const users = []
 const auth = (req,res,next)=>{
-    const token=req.headers.authorization;
+    const token=localStorage.getItem("token");
     if(token){
         jwt.verify(token,JWT_SECRET,(err,decoded)=>{
             if(err){
@@ -21,6 +23,7 @@ const auth = (req,res,next)=>{
     else
         res.status(401).send({message:"unauthorized"})
 }
+
 app.post("/signup",(req,res)=>{
     const username = req.body.username
     const password = req.body.password
@@ -38,7 +41,8 @@ app.post("/signin",(req,res)=>{
     if(user){
         const token = jwt.sign({username:username},JWT_SECRET);
         user.token=token;
-        res.send({token});
+        localStorage.setItem("token", token);
+        res.redirect("/me");
     }
     else
         res.status(403).send({message:"Invalid Username or Password"})
@@ -47,5 +51,6 @@ app.get("/me",auth,(req,res)=>{
     const user = req.user;
     res.send({username:user.username})
 })
+app.use(express.static("public"))
 app.listen(port,()=>{
     console.log(`Server running at http://localhost:${ port }`)})
